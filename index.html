@@ -129,6 +129,8 @@
         }
 
         .btn:active { background: #f1f5f9; }
+        .btn-sync { border-color: var(--primary-color); color: var(--primary-color); }
+        .btn-sync:hover { background: #eff6ff; }
 
         .result-info {
             font-size: 0.8rem;
@@ -225,7 +227,7 @@
 <div class="container">
     <header>
         <h1>Mecharashi_WeaponCore_11-16_202512</h1>
-        <div id="dataStatus" class="status-badge">読込中...</div>
+        <div id="dataStatus" class="status-badge">未読込</div>
     </header>
 
     <div class="controls-card">
@@ -244,7 +246,8 @@
         <div class="admin-section">
             <div class="admin-tools">
                 <input type="file" id="csvFile" accept=".csv" style="display:none">
-                <button onclick="document.getElementById('csvFile').click()" class="btn btn-sm" style="border-color: var(--primary-color); color: var(--primary-color);">📥 CSV読み込み</button>
+                <button onclick="fetchDefaultData()" class="btn btn-sm btn-sync" id="syncBtn">☁️ GitHubから同期</button>
+                <button onclick="document.getElementById('csvFile').click()" class="btn btn-sm">📥 CSV読み込み</button>
                 <button onclick="downloadCSV()" class="btn btn-sm">CSV保存</button>
                 <button onclick="clearSavedData()" class="btn btn-sm" style="color:#ef4444">データを初期化</button>
             </div>
@@ -255,18 +258,24 @@
     
     <div id="displayArea" class="table-view"></div>
     
-    <div id="emptyMessage" class="no-data" style="display: none;">条件に一致するデータはありません。</div>
+    <div id="emptyMessage" class="no-data">
+        表示できるデータがありません。<br>
+        「GitHubから同期」または「CSV読み込み」を行ってください。
+    </div>
 </div>
 
 <script>
     /**
      * GitHub リポジトリの CSV URL
-     * ブランチ名 main、ファイル名 mecharashi-weaponcore-202512.csv であることを確認してください。
+     * 404エラーが出る場合は、以下の3点を確認してください：
+     * 1. リポジトリが「Public」設定になっているか
+     * 2. ブランチ名が「main」になっているか（masterの場合はURLを修正）
+     * 3. ファイル名が「mecharashi-weaponcore-202512.csv」と完全に一致するか
      */
     const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/jyamaiken/mecharashi-weaponcore-search/main/mecharashi-weaponcore-202512.csv';
 
     // ストレージキー
-    const STORAGE_KEY = 'mecharashi_search_data_v202512_final';
+    const STORAGE_KEY = 'mecharashi_search_data_v202512_final_clean';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
     const W_IDX = 4;
@@ -274,44 +283,55 @@
     let headers = ["Stage", "Boss", "Core", "Skill", "W", "効果", "条件"];
     let records = [];
 
-    window.onload = async () => {
+    window.onload = () => {
         const saved = localStorage.getItem(STORAGE_KEY);
-        
         if (saved && saved.split('\n').length > 1) {
-            document.getElementById('dataStatus').textContent = "📂 ローカルキャッシュ表示中";
+            document.getElementById('dataStatus').textContent = "📂 キャッシュ読込完了";
             parse(saved);
         } else {
-            await fetchDefaultData();
+            document.getElementById('dataStatus').textContent = "⚠️ 待機中";
+            // 初期状態は 0 件表示
+            render();
         }
     };
 
-    // GitHub から CSV を自動取得
+    // GitHub から CSV を手動同期
     async function fetchDefaultData() {
-        document.getElementById('dataStatus').textContent = "🌐 GitHub から取得中...";
+        const btn = document.getElementById('syncBtn');
+        const status = document.getElementById('dataStatus');
+        
+        btn.disabled = true;
+        status.textContent = "🌐 GitHubから取得中...";
+        
         try {
             const response = await fetch(GITHUB_CSV_URL);
             if (!response.ok) {
-                const errorMsg = response.status === 404 ? '404: ファイルが見つかりません' : `エラー: ${response.status}`;
-                throw new Error(errorMsg);
+                const errorDetail = response.status === 404 ? 'ファイルが見つかりません(404)' : `エラー(${response.status})`;
+                throw new Error(errorDetail);
             }
             const content = await response.text();
             
-            if (content.length < 20) throw new Error('取得したデータが空、または不正です');
+            if (content.length < 20) throw new Error('データが不正です');
 
             localStorage.setItem(STORAGE_KEY, content);
-            document.getElementById('dataStatus').textContent = "✅ 同期完了";
+            status.textContent = "✅ 同期完了";
             parse(content);
         } catch (error) {
             console.error('Fetch error:', error);
-            document.getElementById('dataStatus').textContent = `⚠️ ${error.message}`;
-            // 失敗した場合はヘッダーだけ表示してユーザーにCSV読込を促す
-            parse(`Stage,Boss,Core,Skill,W,効果,条件`);
+            status.textContent = `❌ ${error.message}`;
+            alert(`GitHubからの取得に失敗しました。\n理由: ${error.message}\n\nリポジトリがPublic設定か、ファイル名が正しいかGitHub側を確認してください。`);
+        } finally {
+            btn.disabled = false;
         }
     }
 
     function parse(text) {
         const lines = text.trim().split(/\r?\n/).filter(l => l.trim() !== "");
-        if (lines.length === 0) return;
+        if (lines.length === 0) {
+            records = [];
+            render();
+            return;
+        }
         
         headers = lines[0].split(',').map(h => h.trim());
         
@@ -366,7 +386,6 @@
             info.textContent = "";
             container.innerHTML = "";
             empty.style.display = "block";
-            empty.textContent = "GitHubからの取得に失敗しました。リポジトリの公開設定やファイル名を確認するか、「CSV読み込み」から手動で選択してください。";
             return;
         }
 
@@ -374,10 +393,7 @@
         container.innerHTML = "";
         empty.style.display = filtered.length === 0 ? "block" : "none";
 
-        if (filtered.length === 0) {
-            empty.textContent = "検索条件に一致するデータはありません。";
-            return;
-        }
+        if (filtered.length === 0) return;
 
         const table = document.createElement('table');
         table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
@@ -466,8 +482,9 @@
     }
 
     function clearSavedData() {
-        if (confirm("全てのキャッシュを削除し、GitHub から最新データを取得し直しますか？")) {
+        if (confirm("全てのキャッシュを削除し、空の状態（0件）に戻しますか？")) {
             localStorage.removeItem(STORAGE_KEY);
+            // ページをリロードして初期化を実行
             location.reload();
         }
     }
