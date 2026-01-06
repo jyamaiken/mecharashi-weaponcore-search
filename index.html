@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スキル効果検索 Ultimate</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --secondary-color: #64748b;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --highlight-bg: #fde047;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 10px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .status-badge {
+            font-size: 0.85rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--bg-color);
+            color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+        }
+
+        /* データ管理パネル */
+        .admin-panel {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+
+        summary {
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--secondary-color);
+            user-select: none;
+        }
+
+        .admin-content {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* フィルターセクション */
+        .search-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            background: #fff;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+        }
+
+        select, input[type="text"] {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            ring: 2px var(--primary-color);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: white; border: 1px solid var(--border-color); color: var(--secondary-color); }
+        .btn-outline:hover { background: var(--bg-color); }
+        .btn-danger { color: #ef4444; background: #fee2e2; }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* テーブル */
+        .table-wrapper {
+            overflow: auto;
+            max-height: 65vh;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 800px;
+        }
+
+        th {
+            background: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--border-color);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        th:hover { background: #f1f5f9; }
+        th::after { content: ' ↕'; opacity: 0.3; font-size: 0.7rem; }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) { background: #fcfcfc; }
+        tr:hover { background: #eff6ff; }
+
+        mark {
+            background: var(--highlight-bg);
+            color: inherit;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+
+        .counter {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .no-data {
+            padding: 60px;
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .search-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>スキル効果検索 <span style="font-weight: 200;">Ultimate</span></h1>
+        <div id="dataStatus" class="status-badge">読み込み中...</div>
+    </header>
+
+    <details class="admin-panel">
+        <summary>🔧 データ管理・設定</summary>
+        <div class="admin-content">
+            <div class="input-group">
+                <label>CSVインポート</label>
+                <input type="file" id="csvFile" accept=".csv" />
+            </div>
+            <button onclick="downloadCSV()" class="btn btn-outline">📥 現在のデータを保存</button>
+            <button onclick="clearSavedData()" class="btn btn-danger">🗑️ 初期化</button>
+        </div>
+    </details>
+
+    <div class="search-grid">
+        <div class="input-group">
+            <label for="skillSelect">Skill絞り込み</label>
+            <select id="skillSelect"><option value="">-- 全て --</option></select>
+        </div>
+        <div class="input-group">
+            <label for="effectInput">キーワード検索 (スペース区切りでAND検索)</label>
+            <input type="text" id="effectInput" placeholder="例: パーツ 破壊 命中">
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+            <button id="resetBtn" class="btn btn-outline" style="width: 100%;">検索条件をリセット</button>
+        </div>
+    </div>
+
+    <div id="resultInfo" class="counter"></div>
+
+    <div class="table-wrapper">
+        <table id="resultTable">
+            <thead><tr id="tableHeader"></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyMessage" class="no-data" style="display: none;">条件に一致するデータはありません。</div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'skill_db_ultimate_v1';
+    const STAGE_COL_INDEX = 0; // Stage列 (A列)
+    const SKILL_COL_INDEX = 3; // Skill列 (D列)
+
+    let rawHeaders = [];
+    let allRecords = [];
+    let sortConfig = { key: null, direction: 'asc' };
+
+    // デフォルトデータ (Stageを番号のみに修正)
+    const initialCSV = `Stage,Boss,Core,Skill,W,条件,効果
+11,ビップ,条件,撃破,アタックスキル使用時,パーツを破壊した場合,
+11,ビップ,条件,解放,0,4AP以上のスキルを使用時,
+11,ビップ,条件,背水,0,0,0
+11,ビップ,触発,壊足,0,足パーツへのダメージが増加,
+11,ビップ,触発,焦点,0,命中率アップ,
+11,ビップ,条件,侵攻,0,範囲スキルを使用時,
+11,ビップ,条件,協撃,0,協力攻撃を発動時,
+11,エグバート,条件,反撃,0,反撃時,
+11,エグバート,触発,穿甲,0,相手の装甲（防御力）を一定割合無視,
+11,エグバート,触発,強撃,0,最終ダメージが増加,
+11,エグバート,条件,狙定,アタックスキル使用時,命中率が80%以上の場合,
+11,リーデバルト,条件,圧迫,アタックスキル使用時,対象が反撃できない場合,
+11,リーデバルト,触発,強撃,0,最終ダメージが増加,
+12,メーヌ,条件,連撃,0,0,0`;
+
+    window.onload = () => {
+        initApp();
+    };
+
+    function initApp() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            document.getElementById('dataStatus').textContent = "📂 ユーザーデータ使用中";
+            parseAndLoad(saved);
+        } else {
+            document.getElementById('dataStatus').textContent = "💿 システム標準データ";
+            parseAndLoad(initialCSV);
+        }
+    }
+
+    // CSV解析
+    function parseAndLoad(text) {
+        const rows = [];
+        let curRow = [];
+        let curCell = "";
+        let inQuote = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const next = text[i+1];
+            if (inQuote) {
+                if (char === '"' && next === '"') { curCell += '"'; i++; }
+                else if (char === '"') inQuote = false;
+                else curCell += char;
+            } else {
+                if (char === '"') inQuote = true;
+                else if (char === ',') { curRow.push(curCell.trim()); curCell = ""; }
+                else if (char === '\n' || char === '\r') {
+                    if (char === '\r' && next === '\n') i++;
+                    curRow.push(curCell.trim());
+                    if (curRow.length > 1 || curRow[0] !== "") rows.push(curRow);
+                    curRow = []; curCell = "";
+                } else curCell += char;
+            }
+        }
+        if (curRow.length > 0 || curCell !== "") {
+            curRow.push(curCell.trim());
+            rows.push(curRow);
+        }
+
+        if (rows.length > 0) {
+            rawHeaders = rows[0];
+            allRecords = rows.slice(1).map(row => {
+                // Stage列 (INDEX 0) があれば、数値部分だけを抽出する処理を追加
+                if (row[STAGE_COL_INDEX]) {
+                    const match = row[STAGE_COL_INDEX].match(/^\d+/);
+                    if (match) row[STAGE_COL_INDEX] = match[0];
+                }
+                return row;
+            });
+            setupFilters();
+            render();
+        }
+    }
+
+    function setupFilters() {
+        const skillSelect = document.getElementById('skillSelect');
+        const uniqueSkills = [...new Set(allRecords.map(r => r[SKILL_COL_INDEX]))]
+            .filter(s => s && s !== "0")
+            .sort();
+
+        const currentVal = skillSelect.value;
+        skillSelect.innerHTML = '<option value="">-- 全て --</option>';
+        uniqueSkills.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = opt.textContent = s;
+            skillSelect.appendChild(opt);
+        });
+        skillSelect.value = currentVal;
+
+        const thr = document.getElementById('tableHeader');
+        thr.innerHTML = rawHeaders.map((h, i) => `<th onclick="handleSort(${i})">${h}</th>`).join('');
+    }
+
+    function handleSort(index) {
+        if (sortConfig.key === index) {
+            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortConfig.key = index;
+            sortConfig.direction = 'asc';
+        }
+        render();
+    }
+
+    function render() {
+        const skillFilter = document.getElementById('skillSelect').value;
+        const searchInput = document.getElementById('effectInput').value.trim().toLowerCase();
+        const keywords = searchInput ? searchInput.split(/\s+/) : [];
+
+        let filtered = allRecords.filter(row => {
+            const matchSkill = !skillFilter || row[SKILL_COL_INDEX] === skillFilter;
+            const matchKeywords = keywords.every(kw => 
+                row.some(cell => cell.toLowerCase().includes(kw))
+            );
+            return matchSkill && matchKeywords;
+        });
+
+        if (sortConfig.key !== null) {
+            filtered.sort((a, b) => {
+                let valA = a[sortConfig.key] || "";
+                let valB = b[sortConfig.key] || "";
+                const result = valA.localeCompare(valB, 'ja', { numeric: true });
+                return sortConfig.direction === 'asc' ? result : -result;
+            });
+        }
+
+        document.getElementById('resultInfo').textContent = 
+            `検索結果: ${filtered.length} 件 / 全 ${allRecords.length} 件`;
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+        document.getElementById('emptyMessage').style.display = filtered.length === 0 ? "block" : "none";
+
+        filtered.forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+                const td = document.createElement('td');
+                let text = (cell === "0" || cell === "") ? "" : cell;
+
+                if (keywords.length > 0 && text !== "") {
+                    let html = text;
+                    keywords.forEach(kw => {
+                        const regex = new RegExp(`(${kw})`, 'gi');
+                        html = html.replace(regex, '<mark>$1</mark>');
+                    });
+                    td.innerHTML = html;
+                } else {
+                    td.textContent = text;
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('skillSelect').addEventListener('change', render);
+    document.getElementById('effectInput').addEventListener('input', render);
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        document.getElementById('skillSelect').value = "";
+        document.getElementById('effectInput').value = "";
+        sortConfig = { key: null, direction: 'asc' };
+        render();
+    });
+
+    document.getElementById('csvFile').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const content = ev.target.result;
+            localStorage.setItem(STORAGE_KEY, content);
+            location.reload();
+        };
+        reader.readAsText(file);
+    });
+
+    function downloadCSV() {
+        let csvContent = rawHeaders.join(",") + "\n" + 
+                         allRecords.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `skill_data_export_${new Date().getTime()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function clearSavedData() {
+        if (confirm("ブラウザに保存されたデータを消去し、初期データに戻しますか？")) {
+            localStorage.removeItem(STORAGE_KEY);
+            location.reload();
+        }
+    }
+</script>
+
+</body>
+</html>
