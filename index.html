@@ -261,12 +261,12 @@
 <script>
     /**
      * GitHub リポジトリの CSV URL
-     * ファイル名を mecharashi-weaponcore-202512.csv に更新しました
+     * ブランチ名 main、ファイル名 mecharashi-weaponcore-202512.csv であることを確認してください。
      */
     const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/jyamaiken/mecharashi-weaponcore-search/main/mecharashi-weaponcore-202512.csv';
 
-    // ストレージキー（キャッシュ更新のため末尾に _v2 を付与）
-    const STORAGE_KEY = 'mecharashi_search_data_v202512_v2';
+    // ストレージキー
+    const STORAGE_KEY = 'mecharashi_search_data_v202512_final';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
     const W_IDX = 4;
@@ -278,30 +278,33 @@
         const saved = localStorage.getItem(STORAGE_KEY);
         
         if (saved && saved.split('\n').length > 1) {
-            document.getElementById('dataStatus').textContent = "📂 保存データ読込完了";
+            document.getElementById('dataStatus').textContent = "📂 ローカルキャッシュ表示中";
             parse(saved);
         } else {
-            // 保存データがない場合は GitHub から取得
             await fetchDefaultData();
         }
     };
 
     // GitHub から CSV を自動取得
     async function fetchDefaultData() {
-        document.getElementById('dataStatus').textContent = "🌐 GitHub からデータを取得中...";
+        document.getElementById('dataStatus').textContent = "🌐 GitHub から取得中...";
         try {
             const response = await fetch(GITHUB_CSV_URL);
-            if (!response.ok) throw new Error('CSV の取得に失敗しました。ファイル名が正しいか確認してください。');
+            if (!response.ok) {
+                const errorMsg = response.status === 404 ? '404: ファイルが見つかりません' : `エラー: ${response.status}`;
+                throw new Error(errorMsg);
+            }
             const content = await response.text();
             
-            // 取得成功したらパースして保存
+            if (content.length < 20) throw new Error('取得したデータが空、または不正です');
+
             localStorage.setItem(STORAGE_KEY, content);
-            document.getElementById('dataStatus').textContent = "✅ データ同期完了";
+            document.getElementById('dataStatus').textContent = "✅ 同期完了";
             parse(content);
         } catch (error) {
             console.error('Fetch error:', error);
-            document.getElementById('dataStatus').textContent = "⚠️ 外部データ取得失敗";
-            // ヘッダーのみ表示
+            document.getElementById('dataStatus').textContent = `⚠️ ${error.message}`;
+            // 失敗した場合はヘッダーだけ表示してユーザーにCSV読込を促す
             parse(`Stage,Boss,Core,Skill,W,効果,条件`);
         }
     }
@@ -363,6 +366,7 @@
             info.textContent = "";
             container.innerHTML = "";
             empty.style.display = "block";
+            empty.textContent = "GitHubからの取得に失敗しました。リポジトリの公開設定やファイル名を確認するか、「CSV読み込み」から手動で選択してください。";
             return;
         }
 
@@ -370,7 +374,10 @@
         container.innerHTML = "";
         empty.style.display = filtered.length === 0 ? "block" : "none";
 
-        if (filtered.length === 0) return;
+        if (filtered.length === 0) {
+            empty.textContent = "検索条件に一致するデータはありません。";
+            return;
+        }
 
         const table = document.createElement('table');
         table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
@@ -429,14 +436,12 @@
         return h;
     }
 
-    // フィルターのリセット
     document.getElementById('resetBtn').onclick = () => {
         document.getElementById('skillSelect').value = "";
         document.getElementById('effectInput').value = "";
         render();
     };
 
-    // 手動読み込み
     document.getElementById('csvFile').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
