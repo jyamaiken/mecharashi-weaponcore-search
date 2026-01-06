@@ -15,6 +15,7 @@
             --text-muted: #64748b;
             --border-color: #e2e8f0;
             --highlight-bg: #fde047;
+            --w-color: #e11d48; /* ダブルコア用の色 */
         }
 
         * { box-sizing: border-box; }
@@ -138,6 +139,20 @@
             font-weight: 600;
         }
 
+        /* ダブルコアバッジ */
+        .w-badge {
+            display: inline-block;
+            background: var(--w-color);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 900;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: 5px;
+            vertical-align: middle;
+            line-height: 1.2;
+        }
+
         /* PCテーブル表示 */
         @media (min-width: 601px) {
             .table-view {
@@ -168,6 +183,7 @@
             }
             tr:hover td { background: #f1f5f9; }
             .col-skill { font-weight: bold; color: var(--primary-color); }
+            .col-w { text-align: center; font-weight: bold; color: var(--w-color); width: 50px; }
             
             /* モバイルカードを隠す */
             .mobile-card { display: none; }
@@ -187,10 +203,12 @@
             .card-header {
                 display: flex;
                 justify-content: space-between;
+                align-items: center;
                 margin-bottom: 8px;
                 border-bottom: 1px solid #f1f5f9;
                 padding-bottom: 8px;
             }
+            .card-skill-wrapper { display: flex; align-items: center; }
             .card-skill { font-size: 1.1rem; font-weight: 800; color: var(--primary-color); }
             .card-stage { font-size: 0.75rem; background: var(--bg-color); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
             .card-sub { font-size: 0.8rem; color: var(--secondary-color); margin-bottom: 10px; }
@@ -256,6 +274,7 @@
     const STORAGE_KEY = 'mecharashi_db_v202512_final';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
+    const W_IDX = 4; // W列のインデックス
 
     let headers = [];
     let records = [];
@@ -392,7 +411,7 @@
 
         // テーブルの作成（PC用）
         const table = document.createElement('table');
-        table.innerHTML = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+        table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
         const tbody = document.createElement('tbody');
         
         filtered.forEach(row => {
@@ -400,7 +419,14 @@
             row.forEach((cell, i) => {
                 const td = document.createElement('td');
                 if (i === SKILL_IDX) td.className = "col-skill";
-                td.innerHTML = highlight(cell, keywords);
+                if (i === W_IDX) td.className = "col-w";
+                
+                // W列かつ「W」が入っている場合は目立たせる
+                if (i === W_IDX && (cell === "W" || cell === "w" || cell === "1")) {
+                    td.innerHTML = '<span class="w-badge">W</span>';
+                } else {
+                    td.innerHTML = highlight(cell, keywords);
+                }
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
@@ -408,15 +434,25 @@
             // モバイル用カード
             const card = document.createElement('div');
             card.className = "mobile-card";
+            
+            // ダブルコアバッジの生成
+            const wStatus = (row[W_IDX] === "W" || row[W_IDX] === "w" || row[W_IDX] === "1") 
+                ? '<span class="w-badge">W</span>' 
+                : '';
+
             card.innerHTML = `
                 <div class="card-header">
-                    <span class="card-skill">${highlight(row[SKILL_IDX], keywords)}</span>
+                    <div class="card-skill-wrapper">
+                        <span class="card-skill">${highlight(row[SKILL_IDX], keywords)}</span>
+                        ${wStatus}
+                    </div>
                     <span class="card-stage">Stage ${row[STAGE_IDX]}</span>
                 </div>
                 <div class="card-sub">${row[1] || ''} / ${row[2] || ''}</div>
                 <div class="card-body">
                     ${headers.map((h, i) => {
-                        if (i <= 3 || !row[i] || row[i] === "0" || row[i] === "") return "";
+                        // W, Stage, Boss, Core, Skillはヘッダー側で処理済みのため除外
+                        if (i <= 4 || !row[i] || row[i] === "0" || row[i] === "") return "";
                         return `<div class="data-item"><span class="data-label">${h}</span><span class="data-value">${highlight(row[i], keywords)}</span></div>`;
                     }).join('')}
                 </div>
