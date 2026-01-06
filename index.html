@@ -15,7 +15,7 @@
             --text-muted: #64748b;
             --border-color: #e2e8f0;
             --highlight-bg: #fde047;
-            --w-color: #e11d48; /* ダブルコア用の色 */
+            --w-color: #e11d48;
         }
 
         * { box-sizing: border-box; }
@@ -63,7 +63,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* 検索・フィルターエリア */
         .controls-card {
             background: #fff;
             padding: 16px;
@@ -104,7 +103,7 @@
             padding: 12px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            font-size: 16px; /* モバイルズーム防止 */
+            font-size: 16px;
             background-color: #fff;
             outline: none;
         }
@@ -131,7 +130,6 @@
 
         .btn:active { background: #f1f5f9; }
 
-        /* 結果エリア */
         .result-info {
             font-size: 0.8rem;
             color: var(--secondary-color);
@@ -139,7 +137,6 @@
             font-weight: 600;
         }
 
-        /* ダブルコアバッジ */
         .w-badge {
             display: inline-block;
             background: var(--w-color);
@@ -153,7 +150,6 @@
             line-height: 1.2;
         }
 
-        /* PCテーブル表示 */
         @media (min-width: 601px) {
             .table-view {
                 overflow-x: auto;
@@ -184,12 +180,9 @@
             tr:hover td { background: #f1f5f9; }
             .col-skill { font-weight: bold; color: var(--primary-color); }
             .col-w { text-align: center; font-weight: bold; color: var(--w-color); width: 50px; }
-            
-            /* モバイルカードを隠す */
             .mobile-card { display: none; }
         }
 
-        /* モバイルカード表示 */
         @media (max-width: 600px) {
             table { display: none; }
             .mobile-card {
@@ -222,7 +215,6 @@
         
         .no-data { padding: 50px; text-align: center; color: var(--text-muted); background: #fff; border-radius: 12px; border: 1px dashed var(--border-color); }
 
-        /* 管理ツール */
         .admin-section { margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px; }
         summary { font-size: 0.8rem; color: var(--secondary-color); cursor: pointer; padding: 5px; }
         .admin-tools { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
@@ -263,23 +255,21 @@
 
     <div id="resultInfo" class="result-info"></div>
     
-    <div id="displayArea" class="table-view">
-        <!-- JSでテーブルまたはカードが生成される -->
-    </div>
+    <div id="displayArea" class="table-view"></div>
     
     <div id="emptyMessage" class="no-data" style="display: none;">条件に一致するデータはありません</div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'mecharashi_db_v202512_final';
+    const STORAGE_KEY = 'mecharashi_db_v202512_final_fixed';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
-    const W_IDX = 4; // W列のインデックス
+    const W_IDX = 4;
 
     let headers = [];
     let records = [];
 
-    // アップロードされた「効果一覧.csv」の内容（W列の欠落を補完）
+    // デフォルトデータ: カラム位置を CSV と完全に一致させ、W 情報を追加
     const initialCSV = `Stage,Boss,Core,Skill,W,効果,条件
 11,ピップ,条件,撃破,,パーツを破壊した場合,アタックスキル使用時
 11,ピップ,条件,解放,,4AP以上のスキルを使用時,
@@ -348,10 +338,10 @@
     window.onload = () => {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-            document.getElementById('dataStatus').textContent = "📂 ユーザー保存データ";
+            document.getElementById('dataStatus').textContent = "📂 保存データ";
             parse(saved);
         } else {
-            document.getElementById('dataStatus').textContent = "💿 標準データ(11-16)";
+            document.getElementById('dataStatus').textContent = "💿 標準(11-16)";
             parse(initialCSV);
         }
     };
@@ -375,7 +365,7 @@
     function updateFilterUI() {
         const select = document.getElementById('skillSelect');
         const prev = select.value;
-        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0").sort();
+        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0" && s !== "").sort();
         select.innerHTML = '<option value="">-- 全て --</option>';
         skills.forEach(s => {
             const opt = document.createElement('option');
@@ -392,12 +382,8 @@
 
         const filtered = records.filter(row => {
             const matchSkill = !skillFilter || row[SKILL_IDX] === skillFilter;
-            // null/undefinedを考慮した検索ロジック
             const matchKeywords = keywords.every(kw => 
-                row.some(cell => {
-                    if (cell === null || cell === undefined) return false;
-                    return cell.toString().toLowerCase().includes(kw);
-                })
+                row.some(cell => cell && cell.toString().toLowerCase().includes(kw))
             );
             return matchSkill && matchKeywords;
         });
@@ -413,7 +399,6 @@
         }
         empty.style.display = "none";
 
-        // テーブルの作成（PC用）
         const table = document.createElement('table');
         table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
         const tbody = document.createElement('tbody');
@@ -425,7 +410,6 @@
                 if (i === SKILL_IDX) td.className = "col-skill";
                 if (i === W_IDX) td.className = "col-w";
                 
-                // W列かつ「W」が入っている場合は目立たせる
                 if (i === W_IDX && (cell === "W" || cell === "w" || cell === "1")) {
                     td.innerHTML = '<span class="w-badge">W</span>';
                 } else {
@@ -435,27 +419,21 @@
             });
             tbody.appendChild(tr);
 
-            // モバイル用カード
             const card = document.createElement('div');
             card.className = "mobile-card";
-            
-            // ダブルコアバッジの生成
-            const wStatus = (row[W_IDX] === "W" || row[W_IDX] === "w" || row[W_IDX] === "1") 
-                ? '<span class="w-badge">W</span>' 
-                : '';
+            const wBadge = (row[W_IDX] === "W" || row[W_IDX] === "w" || row[W_IDX] === "1") ? '<span class="w-badge">W</span>' : '';
 
             card.innerHTML = `
                 <div class="card-header">
                     <div class="card-skill-wrapper">
                         <span class="card-skill">${highlight(row[SKILL_IDX], keywords)}</span>
-                        ${wStatus}
+                        ${wBadge}
                     </div>
                     <span class="card-stage">Stage ${row[STAGE_IDX]}</span>
                 </div>
                 <div class="card-sub">${row[1] || ''} / ${row[2] || ''}</div>
                 <div class="card-body">
                     ${headers.map((h, i) => {
-                        // W, Stage, Boss, Core, Skillはヘッダー側で処理済みのため除外
                         if (i <= 4 || !row[i] || row[i] === "0" || row[i] === "") return "";
                         return `<div class="data-item"><span class="data-label">${h}</span><span class="data-value">${highlight(row[i], keywords)}</span></div>`;
                     }).join('')}
@@ -469,8 +447,8 @@
 
     function highlight(text, kws) {
         if (!text || text === "0") return "";
-        if (kws.length === 0) return text;
         let h = text.toString();
+        if (kws.length === 0) return h;
         kws.forEach(kw => {
             const regex = new RegExp(`(${kw})`, 'gi');
             h = h.replace(regex, '<mark>$1</mark>');
@@ -502,9 +480,7 @@
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url;
-        a.download = `Mecharashi_Data_Export.csv`;
-        a.click();
+        a.href = url; a.download = `Mecharashi_WeaponCore_Data.csv`; a.click();
     }
 
     function clearSavedData() {
