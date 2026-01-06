@@ -267,15 +267,12 @@
 <script>
     /**
      * GitHub リポジトリの CSV URL
-     * 404エラーが出る場合は、以下の3点を確認してください：
-     * 1. リポジトリが「Public」設定になっているか
-     * 2. ブランチ名が「main」になっているか（masterの場合はURLを修正）
-     * 3. ファイル名が「mecharashi-weaponcore-202512.csv」と完全に一致するか
+     * ブランチ名 main、ファイル名 mecharashi-weaponcore-202512.csv であることを確認してください。
      */
     const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/jyamaiken/mecharashi-weaponcore-search/main/mecharashi-weaponcore-202512.csv';
 
-    // ストレージキー
-    const STORAGE_KEY = 'mecharashi_search_data_v202512_final_clean';
+    // ストレージキー（以前のゴミを完全に捨てるためにキーを更新）
+    const STORAGE_KEY = 'mecharashi_final_clean_start_v1';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
     const W_IDX = 4;
@@ -290,7 +287,6 @@
             parse(saved);
         } else {
             document.getElementById('dataStatus').textContent = "⚠️ 待機中";
-            // 初期状態は 0 件表示
             render();
         }
     };
@@ -304,14 +300,21 @@
         status.textContent = "🌐 GitHubから取得中...";
         
         try {
-            const response = await fetch(GITHUB_CSV_URL);
+            // キャッシュを回避するためにタイムスタンプを付与
+            const response = await fetch(`${GITHUB_CSV_URL}?t=${new Date().getTime()}`);
+            
             if (!response.ok) {
-                const errorDetail = response.status === 404 ? 'ファイルが見つかりません(404)' : `エラー(${response.status})`;
+                const errorDetail = response.status === 404 
+                    ? '404: ファイル名またはブランチ名が違います' 
+                    : `エラー(${response.status})`;
                 throw new Error(errorDetail);
             }
+            
             const content = await response.text();
             
-            if (content.length < 20) throw new Error('データが不正です');
+            if (content.length < 20 || !content.includes(',')) {
+                throw new Error('データ形式が不正です');
+            }
 
             localStorage.setItem(STORAGE_KEY, content);
             status.textContent = "✅ 同期完了";
@@ -319,7 +322,7 @@
         } catch (error) {
             console.error('Fetch error:', error);
             status.textContent = `❌ ${error.message}`;
-            alert(`GitHubからの取得に失敗しました。\n理由: ${error.message}\n\nリポジトリがPublic設定か、ファイル名が正しいかGitHub側を確認してください。`);
+            alert(`取得失敗: ${error.message}\n\nURL確認用:\n${GITHUB_CSV_URL}\n\nこのURLをブラウザで開いて、CSVの中身が表示されるか確認してください。`);
         } finally {
             btn.disabled = false;
         }
@@ -482,9 +485,9 @@
     }
 
     function clearSavedData() {
-        if (confirm("全てのキャッシュを削除し、空の状態（0件）に戻しますか？")) {
+        if (confirm("全てのキャッシュを削除し、完全に初期状態（0件）に戻しますか？\n（GitHubからの同期も再度必要になります）")) {
             localStorage.removeItem(STORAGE_KEY);
-            // ページをリロードして初期化を実行
+            // リロードして初期化を実行
             location.reload();
         }
     }
