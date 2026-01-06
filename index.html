@@ -262,8 +262,8 @@
 </div>
 
 <script>
-    // ブラウザキャッシュ用のキー（リセットを確実にするため新しい名称に設定）
-    const STORAGE_KEY = 'mecharashi_search_data_v2026';
+    // キーを刷新し、以前の「ゴミ」データを強制的にパージ
+    const STORAGE_KEY = 'mecharashi_search_v2025_ultimate_clean';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
     const W_IDX = 4;
@@ -276,7 +276,8 @@
 
     window.onload = () => {
         const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved && saved.trim() !== "" && saved !== initialCSV) {
+        // 保存データがあり、かつヘッダー以外の行が存在する場合のみ読み込む
+        if (saved && saved.split('\n').length > 1) {
             document.getElementById('dataStatus').textContent = "📂 保存データを表示中";
             parse(saved);
         } else {
@@ -286,15 +287,17 @@
     };
 
     function parse(text) {
+        // 空白行を排除し、正確に行を分割
         const lines = text.trim().split(/\r?\n/).filter(l => l.trim() !== "");
         if (lines.length === 0) return;
         
         headers = lines[0].split(',').map(h => h.trim());
         
+        // ヘッダーのみの場合は records を空にする
         if (lines.length > 1) {
             records = lines.slice(1).map(line => {
                 const cells = line.split(',').map(c => c.trim());
-                // Stage列を数値化
+                // Stage列を数値化（ソートや表示の正規化）
                 if (cells[STAGE_IDX]) {
                     const m = cells[STAGE_IDX].match(/^\d+/);
                     if (m) cells[STAGE_IDX] = m[0];
@@ -343,12 +346,16 @@
             info.textContent = "表示できるデータがありません。";
             container.innerHTML = "";
             empty.style.display = "block";
+            empty.textContent = "データがありません。「CSV読み込み」からファイルを選択してください。";
             return;
         }
 
         info.textContent = `${filtered.length} 件表示中 / 全 ${records.length} 件`;
         container.innerHTML = "";
         empty.style.display = filtered.length === 0 ? "block" : "none";
+        if (filtered.length === 0) {
+            empty.textContent = "条件に一致するデータはありません。";
+        }
 
         if (filtered.length === 0) return;
 
@@ -409,45 +416,44 @@
         return h;
     }
 
-    // 検索フィルターのリセット
+    // 検索フィルターのリセット機能
     document.getElementById('resetBtn').onclick = () => {
         document.getElementById('skillSelect').value = "";
         document.getElementById('effectInput').value = "";
         render();
     };
 
-    // CSVファイルの読み込み
+    // CSVファイルの読み込みとローカルストレージへの保存
     document.getElementById('csvFile').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
             const content = ev.target.result;
-            // ローカルストレージに即座に保存
+            // ローカルストレージに即座に保存（キャッシュ保持）
             localStorage.setItem(STORAGE_KEY, content);
             document.getElementById('dataStatus').textContent = "📂 ファイル読込完了 (自動保存しました)";
             parse(content);
         };
         reader.readAsText(file);
-        // 同じファイルを連続で選択できるようにリセット
+        // 同じファイルを連続で選択できるように入力をリセット
         e.target.value = "";
     };
 
-    // 現在の状態をCSVでダウンロード
     function downloadCSV() {
         if (records.length === 0) return;
         let csv = headers.join(",") + "\n" + records.map(r => r.join(",")).join("\n");
         const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = `Mecharashi_WeaponCore_Export.csv`; a.click();
+        a.href = url; a.download = `Mecharashi_Export.csv`; a.click();
     }
 
-    // 全データの消去
+    // キャッシュを削除し、完全に0件の状態にリセット
     function clearSavedData() {
-        if (confirm("全てのデータを削除し、空の状態（0件）に戻しますか？")) {
+        if (confirm("ブラウザに保存された全てのデータを削除し、空の状態に戻しますか？")) {
             localStorage.removeItem(STORAGE_KEY);
-            // ページをリロードして初期状態を読み込む
+            // ページをリロードして初期化を実行
             location.reload();
         }
     }
