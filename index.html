@@ -2,368 +2,365 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スキル効果検索 Ultimate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mecharashi_WeaponCore_11-16_202512</title>
     <style>
         :root {
             --primary-color: #2563eb;
             --primary-hover: #1d4ed8;
             --secondary-color: #64748b;
-            --bg-color: #f1f5f9;
+            --bg-color: #f8fafc;
             --card-bg: #ffffff;
-            --text-main: #1e293b;
+            --text-main: #0f172a;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
             --highlight-bg: #fde047;
         }
 
+        * { box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             margin: 0;
-            padding: 10px;
+            padding: 0;
             line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
         }
 
         .container {
-            max-width: 1300px;
+            max-width: 1100px;
             margin: 0 auto;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            padding: 16px;
         }
 
         header {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
             flex-wrap: wrap;
             gap: 10px;
         }
 
         h1 {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             margin: 0;
             color: var(--primary-color);
+            font-weight: 800;
         }
 
         .status-badge {
-            font-size: 0.85rem;
-            padding: 4px 12px;
-            border-radius: 20px;
-            background: var(--bg-color);
-            color: var(--secondary-color);
-            border: 1px solid var(--border-color);
-        }
-
-        /* データ管理パネル */
-        .admin-panel {
-            background: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 20px;
-        }
-
-        summary {
-            font-weight: 600;
-            cursor: pointer;
-            color: var(--secondary-color);
-            user-select: none;
-        }
-
-        .admin-content {
-            margin-top: 15px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-        }
-
-        /* フィルターセクション */
-        .search-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 15px;
+            font-size: 0.75rem;
+            padding: 2px 10px;
+            border-radius: 99px;
             background: #fff;
+            color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+        }
+
+        /* 検索・フィルターエリア */
+        .controls-card {
+            background: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
 
-        .input-group {
+        .search-grid {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 12px;
+        }
+
+        @media (min-width: 641px) {
+            .search-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr auto;
+                align-items: flex-end;
+            }
+        }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         label {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: var(--secondary-color);
         }
 
         select, input[type="text"] {
-            padding: 10px;
+            width: 100%;
+            padding: 12px;
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.2s;
+            border-radius: 8px;
+            font-size: 16px; /* モバイルズーム防止 */
+            background-color: #fff;
+            outline: none;
         }
 
         select:focus, input[type="text"]:focus {
-            outline: none;
             border-color: var(--primary-color);
-            ring: 2px var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
+            height: 48px;
+            padding: 0 20px;
+            border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
-            border: none;
-            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: #fff;
+            color: var(--secondary-color);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            transition: all 0.2s;
         }
 
-        .btn-primary { background: var(--primary-color); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); }
-        .btn-outline { background: white; border: 1px solid var(--border-color); color: var(--secondary-color); }
-        .btn-outline:hover { background: var(--bg-color); }
-        .btn-danger { color: #ef4444; background: #fee2e2; }
-        .btn-danger:hover { background: #fecaca; }
+        .btn:active { background: #f1f5f9; }
 
-        /* テーブル */
-        .table-wrapper {
-            overflow: auto;
-            max-height: 65vh;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-            min-width: 800px;
-        }
-
-        th {
-            background: #f8fafc;
-            padding: 12px;
-            text-align: left;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            border-bottom: 2px solid var(--border-color);
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        th:hover { background: #f1f5f9; }
-        th::after { content: ' ↕'; opacity: 0.3; font-size: 0.7rem; }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: top;
-        }
-
-        tr:nth-child(even) { background: #fcfcfc; }
-        tr:hover { background: #eff6ff; }
-
-        mark {
-            background: var(--highlight-bg);
-            color: inherit;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
-
-        .counter {
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
+        /* 結果エリア */
+        .result-info {
+            font-size: 0.8rem;
             color: var(--secondary-color);
+            margin-bottom: 10px;
+            font-weight: 600;
         }
 
-        .no-data {
-            padding: 60px;
-            text-align: center;
-            color: var(--text-muted);
-            font-style: italic;
+        /* PCテーブル表示 */
+        @media (min-width: 601px) {
+            .table-view {
+                overflow-x: auto;
+                background: #fff;
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.85rem;
+            }
+            th {
+                background: #f8fafc;
+                padding: 12px;
+                text-align: left;
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                border-bottom: 2px solid var(--border-color);
+                color: var(--secondary-color);
+            }
+            td {
+                padding: 12px;
+                border-bottom: 1px solid var(--border-color);
+                vertical-align: top;
+            }
+            tr:hover td { background: #f1f5f9; }
+            .col-skill { font-weight: bold; color: var(--primary-color); }
         }
 
+        /* モバイルカード表示 */
         @media (max-width: 600px) {
-            .search-grid { grid-template-columns: 1fr; }
-            h1 { font-size: 1.2rem; }
+            table { display: none; }
+            .mobile-card {
+                background: #fff;
+                border-radius: 12px;
+                border: 1px solid var(--border-color);
+                padding: 16px;
+                margin-bottom: 12px;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            }
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                border-bottom: 1px solid #f1f5f9;
+                padding-bottom: 8px;
+            }
+            .card-skill { font-size: 1.1rem; font-weight: 800; color: var(--primary-color); }
+            .card-stage { font-size: 0.75rem; background: var(--bg-color); padding: 2px 8px; border-radius: 4px; font-weight: bold; }
+            .card-sub { font-size: 0.8rem; color: var(--secondary-color); margin-bottom: 10px; }
+            .card-body { display: flex; flex-direction: column; gap: 8px; }
+            .data-item { display: flex; flex-direction: column; }
+            .data-label { font-size: 0.65rem; font-weight: 700; color: var(--secondary-color); text-transform: uppercase; }
+            .data-value { font-size: 0.9rem; }
         }
+
+        mark { background: var(--highlight-bg); color: #000; padding: 0 1px; border-radius: 2px; }
+        
+        .no-data { padding: 50px; text-align: center; color: var(--text-muted); background: #fff; border-radius: 12px; border: 1px dashed var(--border-color); }
+
+        /* 管理ツール */
+        .admin-section { margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px; }
+        summary { font-size: 0.8rem; color: var(--secondary-color); cursor: pointer; padding: 5px; }
+        .admin-tools { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
+        .btn-sm { height: 32px; font-size: 0.75rem; padding: 0 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>スキル効果検索 <span style="font-weight: 200;">Ultimate</span></h1>
-        <div id="dataStatus" class="status-badge">読み込み中...</div>
+        <h1>Mecharashi_WeaponCore_11-16_202512</h1>
+        <div id="dataStatus" class="status-badge">読込中...</div>
     </header>
 
-    <details class="admin-panel">
-        <summary>🔧 データ管理・設定</summary>
-        <div class="admin-content">
-            <div class="input-group">
-                <label>CSVインポート</label>
-                <input type="file" id="csvFile" accept=".csv" />
+    <div class="controls-card">
+        <div class="search-grid">
+            <div class="field-group">
+                <label for="skillSelect">Skill絞り込み</label>
+                <select id="skillSelect"><option value="">-- 全て --</option></select>
             </div>
-            <button onclick="downloadCSV()" class="btn btn-outline">📥 現在のデータを保存</button>
-            <button onclick="clearSavedData()" class="btn btn-danger">🗑️ 初期化</button>
+            <div class="field-group">
+                <label for="effectInput">キーワード検索 (スペース区切り可)</label>
+                <input type="text" id="effectInput" placeholder="例: 命中 パーツ 破壊" inputmode="search" autocomplete="off">
+            </div>
+            <button id="resetBtn" class="btn">リセット</button>
         </div>
-    </details>
 
-    <div class="search-grid">
-        <div class="input-group">
-            <label for="skillSelect">Skill絞り込み</label>
-            <select id="skillSelect"><option value="">-- 全て --</option></select>
-        </div>
-        <div class="input-group">
-            <label for="effectInput">キーワード検索 (スペース区切りでAND検索)</label>
-            <input type="text" id="effectInput" placeholder="例: パーツ 破壊 命中">
-        </div>
-        <div style="display: flex; align-items: flex-end;">
-            <button id="resetBtn" class="btn btn-outline" style="width: 100%;">検索条件をリセット</button>
-        </div>
+        <details class="admin-section">
+            <summary>データ管理 (CSV入出力)</summary>
+            <div class="admin-tools">
+                <input type="file" id="csvFile" accept=".csv" style="display:none">
+                <button onclick="document.getElementById('csvFile').click()" class="btn btn-sm">CSV読込</button>
+                <button onclick="downloadCSV()" class="btn btn-sm">CSV保存</button>
+                <button onclick="clearSavedData()" class="btn btn-sm" style="color:#ef4444">初期化</button>
+            </div>
+        </details>
     </div>
 
-    <div id="resultInfo" class="counter"></div>
-
-    <div class="table-wrapper">
-        <table id="resultTable">
-            <thead><tr id="tableHeader"></tr></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-        <div id="emptyMessage" class="no-data" style="display: none;">条件に一致するデータはありません。</div>
+    <div id="resultInfo" class="result-info"></div>
+    
+    <div id="displayArea" class="table-view">
+        <!-- JSでテーブルまたはカードが生成される -->
     </div>
+    
+    <div id="emptyMessage" class="no-data" style="display: none;">条件に一致するデータはありません</div>
 </div>
 
 <script>
-    const STORAGE_KEY = 'skill_db_ultimate_v1';
-    const STAGE_COL_INDEX = 0; // Stage列 (A列)
-    const SKILL_COL_INDEX = 3; // Skill列 (D列)
+    const STORAGE_KEY = 'mecharashi_db_v202512_final';
+    const STAGE_IDX = 0;
+    const SKILL_IDX = 3;
 
-    let rawHeaders = [];
-    let allRecords = [];
-    let sortConfig = { key: null, direction: 'asc' };
+    let headers = [];
+    let records = [];
 
-    // デフォルトデータ (Stageを番号のみに修正)
-    const initialCSV = `Stage,Boss,Core,Skill,W,条件,効果
-11,ビップ,条件,撃破,アタックスキル使用時,パーツを破壊した場合,
-11,ビップ,条件,解放,0,4AP以上のスキルを使用時,
-11,ビップ,条件,背水,0,0,0
-11,ビップ,触発,壊足,0,足パーツへのダメージが増加,
-11,ビップ,触発,焦点,0,命中率アップ,
-11,ビップ,条件,侵攻,0,範囲スキルを使用時,
-11,ビップ,条件,協撃,0,協力攻撃を発動時,
-11,エグバート,条件,反撃,0,反撃時,
-11,エグバート,触発,穿甲,0,相手の装甲（防御力）を一定割合無視,
-11,エグバート,触発,強撃,0,最終ダメージが増加,
-11,エグバート,条件,狙定,アタックスキル使用時,命中率が80%以上の場合,
-11,リーデバルト,条件,圧迫,アタックスキル使用時,対象が反撃できない場合,
-11,リーデバルト,触発,強撃,0,最終ダメージが増加,
-12,メーヌ,条件,連撃,0,0,0`;
+    // アップロードされた「効果一覧.csv」の内容
+    const initialCSV = `Stage,Boss,Core,Skill,W,効果,条件
+11,ピップ,条件,撃破,,パーツを破壊した場合,アタックスキル使用時
+11,ピップ,条件,解放,,4AP以上のスキルを使用時,
+11,ピップ,条件,背水,,自身のHPが50%以下の場合,ダメージスキル使用時
+11,ピップ,触発,壊足,,足パーツへのダメージ増加,
+11,ピップ,触発,備急,,HPを与えたダメージに応じて回復,
+11,ピップ,触発,焦点,,自身は命中率アップを獲得,
+11,ピップ,条件,侵攻,,範囲スキルを使用時,
+11,ピップ,条件,協撃,,協力攻撃を発動時,
+11,エグバート,条件,反撃,,反撃時,
+11,エグバート,触発,増幅,,ダメージ倍率アップ,
+11,エグバート,触発,穿甲,,相手の装甲（防御力）を一定割合無視,
+11,エグバート,触発,強撃,,最終ダメージ増加,
+11,エグバート,条件,狙定,,命中率が80%以上の場合,アタックスキル使用時
+11,エグバート,触発,備急,,HPを与えたダメージに応じて回復,
+11,エグバート,条件,警戒,,警戒射撃を発動時,
+11,リーデバルト,条件,圧迫,,対象が反撃できない場合,アタックスキル使用時
+11,リーデバルト,条件,背水,,自身のHPが50%以下の場合,ダメージスキル使用時
+11,リーデバルト,条件,壊滅,,対象のパーツが1つ以上破壊されている場合,ダメージスキル使用時
+11,リーデバルト,触発,強撃,,最終ダメージ増加,
+11,リーデバルト,触発,爆破,,パーツを破壊した際、余剰ダメージを他のパーツに与える,
+11,リーデバルト,触発,跳弾,,命中時、1マス内の他の対象にダメージを与える,
+11,リーデバルト,触発,焦点,,自身は命中率アップを獲得,
+11,リーデバルト,条件,侵攻,,範囲スキルを使用時,
+11,アンドレア,条件,反撃,,反撃時,
+11,アンドレア,触発,号令,,周囲2マス内の味方にAPを付与,
+11,アンドレア,触発,壊腕,,腕パーツへのダメージ増加,
+11,アンドレア,触発,跳弾,,命中時、1マス内の他の対象にダメージを与える,
+11,アンドレア,条件,協撃,,協力攻撃を発動時,
+11,アンドレア,条件,警戒,,警戒射撃を発動時,
+12,メーヌ,条件,連撃,,同じ対象に2回以上攻撃が命中した場合,ダメージスキル使用時
+12,メーヌ,触発,爆破,,パーツを破壊した際、余剰ダメージを他のパーツに与える,
+12,メーヌ,触発,跳弾,,命中時、1マス内の他の対象にダメージを与える,
+13,エグバート,条件,圧迫,,対象が反撃できない場合,アタックスキル使用時
+13,エグバート,条件,狙定,,命中率が80%以上の場合,アタックスキル使用時
+13,エグバート,触発,爆破,,パーツを破壊した際、余剰ダメージを他のパーツに与える,
+13,リーデバルト,触発,号令,,周囲2マス内の味方にAPを付与,
+13,リーデバルト,条件,背水,,自身のHPが50%以下の場合,ダメージスキル使用時
+13,リーデバルト,条件,侵攻,,範囲スキルを使用時,
+14,アンドレア,触発,備急,,HPを与えたダメージに応じて回復,
+14,アンドレア,条件,壊滅,,対象のパーツが1つ以上破壊されている場合,ダメージスキル使用時
+14,ミケーラ,触発,壊腕,,腕パーツへのダメージ増加,
+14,ミケーラ,触発,強撃,,最終ダメージ増加,
+15,ビップ,条件,連撃,,同じ対象に2回以上攻撃が命中した場合,ダメージスキル使用時
+15,ビップ,条件,狙定,,命中率が80%以上の場合,アタックスキル使用時
+15,エグバート,触発,号令,,周囲2マス内の味方にAPを付与,
+15,エグバート,触発,穿甲,,相手の装甲（防御力）を一定割合無視,
+16,アンドレア,条件,解放,,4AP以上のスキルを使用時,
+16,アンドレア,触発,抵抗,,被ダメージ減,
+16,アンドレア,触発,点検,,HPを回復,
+16,アンドレア,触発,ぼやけ,,自身はぼやけを獲得,
+16,アンドレア,触発,電圧,,対象の全パーツに固定ダメージ,
+16,アンドレア,触発,修繕,,自身は修繕を獲得,
+16,アンドレア,触発,挫折,,対象の操縦士の作戦能力を低下,
+16,ミケーラ,条件,無患,,コマンドスキルがクールダウン中の場合,ダメージスキル使用時
+16,ミケーラ,条件,逸脱,,自身に3つ以上のバフが付与されている場合,ダメージスキル使用時
+16,ミケーラ,条件,猛進,,移動した距離が4マス以上の場合,ダメージスキル使用時
+16,ミケーラ,条件,双武,,武器を2つ同時に使用して攻撃時,
+16,ミケーラ,条件,猛襲,,対象のパーツが破壊されていない場合,アタックスキル使用時
+16,ミケーラ,条件,決闘,,対象が反撃できる場合,アタックスキル使用時
+16,ミケーラ,触発,確避,,反撃を受けた時必ず回避する,
+16,ミケーラ,触発,同調,,自身のバフを1つ、1マス内の味方にコピーする,
+16,ミケーラ,触発,消弾,,対象の戦術タイプ武器を装填状態にする/全パーツに固定ダメージ,
+16,ミケーラ,触発,破頭,,頭パーツへのダメージ増加,`;
 
     window.onload = () => {
-        initApp();
-    };
-
-    function initApp() {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
-            document.getElementById('dataStatus').textContent = "📂 ユーザーデータ使用中";
-            parseAndLoad(saved);
+            document.getElementById('dataStatus').textContent = "📂 ユーザー保存データ";
+            parse(saved);
         } else {
-            document.getElementById('dataStatus').textContent = "💿 システム標準データ";
-            parseAndLoad(initialCSV);
+            document.getElementById('dataStatus').textContent = "💿 標準データ(11-16)";
+            parse(initialCSV);
         }
-    }
+    };
 
-    // CSV解析
-    function parseAndLoad(text) {
-        const rows = [];
-        let curRow = [];
-        let curCell = "";
-        let inQuote = false;
-
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-            const next = text[i+1];
-            if (inQuote) {
-                if (char === '"' && next === '"') { curCell += '"'; i++; }
-                else if (char === '"') inQuote = false;
-                else curCell += char;
-            } else {
-                if (char === '"') inQuote = true;
-                else if (char === ',') { curRow.push(curCell.trim()); curCell = ""; }
-                else if (char === '\n' || char === '\r') {
-                    if (char === '\r' && next === '\n') i++;
-                    curRow.push(curCell.trim());
-                    if (curRow.length > 1 || curRow[0] !== "") rows.push(curRow);
-                    curRow = []; curCell = "";
-                } else curCell += char;
+    function parse(text) {
+        const lines = text.trim().split(/\r?\n/);
+        if (lines.length === 0) return;
+        headers = lines[0].split(',').map(h => h.trim());
+        records = lines.slice(1).map(line => {
+            const cells = line.split(',').map(c => c.trim());
+            if (cells[STAGE_IDX]) {
+                const m = cells[STAGE_IDX].match(/^\d+/);
+                if (m) cells[STAGE_IDX] = m[0];
             }
-        }
-        if (curRow.length > 0 || curCell !== "") {
-            curRow.push(curCell.trim());
-            rows.push(curRow);
-        }
-
-        if (rows.length > 0) {
-            rawHeaders = rows[0];
-            allRecords = rows.slice(1).map(row => {
-                // Stage列 (INDEX 0) があれば、数値部分だけを抽出する処理を追加
-                if (row[STAGE_COL_INDEX]) {
-                    const match = row[STAGE_COL_INDEX].match(/^\d+/);
-                    if (match) row[STAGE_COL_INDEX] = match[0];
-                }
-                return row;
-            });
-            setupFilters();
-            render();
-        }
+            return cells;
+        });
+        updateFilterUI();
+        render();
     }
 
-    function setupFilters() {
-        const skillSelect = document.getElementById('skillSelect');
-        const uniqueSkills = [...new Set(allRecords.map(r => r[SKILL_COL_INDEX]))]
-            .filter(s => s && s !== "0")
-            .sort();
-
-        const currentVal = skillSelect.value;
-        skillSelect.innerHTML = '<option value="">-- 全て --</option>';
-        uniqueSkills.forEach(s => {
+    function updateFilterUI() {
+        const select = document.getElementById('skillSelect');
+        const prev = select.value;
+        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0").sort();
+        select.innerHTML = '<option value="">-- 全て --</option>';
+        skills.forEach(s => {
             const opt = document.createElement('option');
             opt.value = opt.textContent = s;
-            skillSelect.appendChild(opt);
+            select.appendChild(opt);
         });
-        skillSelect.value = currentVal;
-
-        const thr = document.getElementById('tableHeader');
-        thr.innerHTML = rawHeaders.map((h, i) => `<th onclick="handleSort(${i})">${h}</th>`).join('');
-    }
-
-    function handleSort(index) {
-        if (sortConfig.key === index) {
-            sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
-        } else {
-            sortConfig.key = index;
-            sortConfig.direction = 'asc';
-        }
-        render();
+        select.value = prev || "";
     }
 
     function render() {
@@ -371,88 +368,104 @@
         const searchInput = document.getElementById('effectInput').value.trim().toLowerCase();
         const keywords = searchInput ? searchInput.split(/\s+/) : [];
 
-        let filtered = allRecords.filter(row => {
-            const matchSkill = !skillFilter || row[SKILL_COL_INDEX] === skillFilter;
+        const filtered = records.filter(row => {
+            const matchSkill = !skillFilter || row[SKILL_IDX] === skillFilter;
             const matchKeywords = keywords.every(kw => 
                 row.some(cell => cell.toLowerCase().includes(kw))
             );
             return matchSkill && matchKeywords;
         });
 
-        if (sortConfig.key !== null) {
-            filtered.sort((a, b) => {
-                let valA = a[sortConfig.key] || "";
-                let valB = b[sortConfig.key] || "";
-                const result = valA.localeCompare(valB, 'ja', { numeric: true });
-                return sortConfig.direction === 'asc' ? result : -result;
-            });
+        document.getElementById('resultInfo').textContent = `${filtered.length} 件表示中`;
+        const container = document.getElementById('displayArea');
+        const empty = document.getElementById('emptyMessage');
+        container.innerHTML = "";
+
+        if (filtered.length === 0) {
+            empty.style.display = "block";
+            return;
         }
+        empty.style.display = "none";
 
-        document.getElementById('resultInfo').textContent = 
-            `検索結果: ${filtered.length} 件 / 全 ${allRecords.length} 件`;
-
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = "";
-        document.getElementById('emptyMessage').style.display = filtered.length === 0 ? "block" : "none";
-
+        // テーブルの作成（PC用）
+        const table = document.createElement('table');
+        table.innerHTML = `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>`;
+        const tbody = document.createElement('tbody');
+        
         filtered.forEach(row => {
             const tr = document.createElement('tr');
-            row.forEach(cell => {
+            row.forEach((cell, i) => {
                 const td = document.createElement('td');
-                let text = (cell === "0" || cell === "") ? "" : cell;
-
-                if (keywords.length > 0 && text !== "") {
-                    let html = text;
-                    keywords.forEach(kw => {
-                        const regex = new RegExp(`(${kw})`, 'gi');
-                        html = html.replace(regex, '<mark>$1</mark>');
-                    });
-                    td.innerHTML = html;
-                } else {
-                    td.textContent = text;
-                }
+                if (i === SKILL_IDX) td.className = "col-skill";
+                td.innerHTML = highlight(cell, keywords);
                 tr.appendChild(td);
             });
             tbody.appendChild(tr);
+
+            // モバイル用カード
+            const card = document.createElement('div');
+            card.className = "mobile-card";
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-skill">${highlight(row[SKILL_IDX], keywords)}</span>
+                    <span class="card-stage">Stage ${row[STAGE_IDX]}</span>
+                </div>
+                <div class="card-sub">${row[1] || ''} / ${row[2] || ''}</div>
+                <div class="card-body">
+                    ${headers.map((h, i) => {
+                        if (i <= 3 || !row[i] || row[i] === "0" || row[i] === "") return "";
+                        return `<div class="data-item"><span class="data-label">${h}</span><span class="data-value">${highlight(row[i], keywords)}</span></div>`;
+                    }).join('')}
+                </div>
+            `;
+            container.appendChild(card);
         });
+        table.appendChild(tbody);
+        container.appendChild(table);
     }
 
-    document.getElementById('skillSelect').addEventListener('change', render);
-    document.getElementById('effectInput').addEventListener('input', render);
-    document.getElementById('resetBtn').addEventListener('click', () => {
+    function highlight(text, kws) {
+        if (!text || text === "0") return "";
+        if (kws.length === 0) return text;
+        let h = text;
+        kws.forEach(kw => {
+            const regex = new RegExp(`(${kw})`, 'gi');
+            h = h.replace(regex, '<mark>$1</mark>');
+        });
+        return h;
+    }
+
+    document.getElementById('skillSelect').onchange = render;
+    document.getElementById('effectInput').oninput = render;
+    document.getElementById('resetBtn').onclick = () => {
         document.getElementById('skillSelect').value = "";
         document.getElementById('effectInput').value = "";
-        sortConfig = { key: null, direction: 'asc' };
         render();
-    });
+    };
 
-    document.getElementById('csvFile').addEventListener('change', (e) => {
+    document.getElementById('csvFile').onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = (ev) => {
-            const content = ev.target.result;
-            localStorage.setItem(STORAGE_KEY, content);
+            localStorage.setItem(STORAGE_KEY, ev.target.result);
             location.reload();
         };
         reader.readAsText(file);
-    });
+    };
 
     function downloadCSV() {
-        let csvContent = rawHeaders.join(",") + "\n" + 
-                         allRecords.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        let csv = headers.join(",") + "\n" + records.map(r => r.join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `skill_data_export_${new Date().getTime()}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Mecharashi_Data_Export.csv`;
+        a.click();
     }
 
     function clearSavedData() {
-        if (confirm("ブラウザに保存されたデータを消去し、初期データに戻しますか？")) {
+        if (confirm("データを初期状態に戻しますか？")) {
             localStorage.removeItem(STORAGE_KEY);
             location.reload();
         }
