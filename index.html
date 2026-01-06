@@ -265,14 +265,8 @@
 </div>
 
 <script>
-    /**
-     * GitHub リポジトリの CSV URL
-     * ブランチ名 main、ファイル名 mecharashi-weaponcore-202512.csv であることを確認してください。
-     */
     const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/jyamaiken/mecharashi-weaponcore-search/main/mecharashi-weaponcore-202512.csv';
-
-    // ストレージキー（以前のゴミを完全に捨てるためにキーを更新）
-    const STORAGE_KEY = 'mecharashi_final_clean_start_v1';
+    const STORAGE_KEY = 'mecharashi_final_clean_start_v1_fixed';
     const STAGE_IDX = 0;
     const SKILL_IDX = 3;
     const W_IDX = 4;
@@ -281,6 +275,12 @@
     let records = [];
 
     window.onload = () => {
+        // UIイベントの紐付け
+        document.getElementById('skillSelect').addEventListener('change', render);
+        document.getElementById('effectInput').addEventListener('input', render);
+        document.getElementById('resetBtn').addEventListener('click', resetFilters);
+        document.getElementById('csvFile').addEventListener('change', handleFileUpload);
+
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved && saved.split('\n').length > 1) {
             document.getElementById('dataStatus').textContent = "📂 キャッシュ読込完了";
@@ -291,41 +291,41 @@
         }
     };
 
-    // GitHub から CSV を手動同期
     async function fetchDefaultData() {
         const btn = document.getElementById('syncBtn');
         const status = document.getElementById('dataStatus');
-        
         btn.disabled = true;
         status.textContent = "🌐 GitHubから取得中...";
         
         try {
-            // キャッシュを回避するためにタイムスタンプを付与
             const response = await fetch(`${GITHUB_CSV_URL}?t=${new Date().getTime()}`);
-            
-            if (!response.ok) {
-                const errorDetail = response.status === 404 
-                    ? '404: ファイル名またはブランチ名が違います' 
-                    : `エラー(${response.status})`;
-                throw new Error(errorDetail);
-            }
-            
+            if (!response.ok) throw new Error(response.status === 404 ? '404: ファイル名相違' : `エラー(${response.status})`);
             const content = await response.text();
-            
-            if (content.length < 20 || !content.includes(',')) {
-                throw new Error('データ形式が不正です');
-            }
-
+            if (content.length < 20) throw new Error('データ不正');
             localStorage.setItem(STORAGE_KEY, content);
             status.textContent = "✅ 同期完了";
             parse(content);
         } catch (error) {
             console.error('Fetch error:', error);
             status.textContent = `❌ ${error.message}`;
-            alert(`取得失敗: ${error.message}\n\nURL確認用:\n${GITHUB_CSV_URL}\n\nこのURLをブラウザで開いて、CSVの中身が表示されるか確認してください。`);
+            alert(`取得失敗: ${error.message}\nURL: ${GITHUB_CSV_URL}`);
         } finally {
             btn.disabled = false;
         }
+    }
+
+    function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const content = ev.target.result;
+            localStorage.setItem(STORAGE_KEY, content);
+            document.getElementById('dataStatus').textContent = "📂 手動読込完了";
+            parse(content);
+        };
+        reader.readAsText(file);
+        e.target.value = "";
     }
 
     function parse(text) {
@@ -358,26 +358,34 @@
     function updateFilterUI() {
         const select = document.getElementById('skillSelect');
         const prev = select.value;
-        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0").sort();
+        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0" && s !== "").sort();
+        
         select.innerHTML = '<option value="">-- 全て --</option>';
         skills.forEach(s => {
             const opt = document.createElement('option');
             opt.value = opt.textContent = s;
             select.appendChild(opt);
         });
-        select.value = prev || "";
+        select.value = skills.includes(prev) ? prev : "";
     }
 
     function render() {
         const skillFilter = document.getElementById('skillSelect').value;
         const searchInput = document.getElementById('effectInput').value.trim().toLowerCase();
+        
+        // 検索キーワードを分割
         const keywords = searchInput ? searchInput.split(/\s+/) : [];
 
         const filtered = records.filter(row => {
             const matchSkill = !skillFilter || row[SKILL_IDX] === skillFilter;
-            const matchKeywords = keywords.every(kw => 
-                row.some(cell => cell && cell.toString().toLowerCase().includes(kw))
-            );
+            const matchKeywords = keywords.every(kw => {
+                // 正規表現の特殊文字をエスケープして安全に検索
+                const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                return row.some(cell => {
+                    const val = cell ? cell.toString().toLowerCase() : "";
+                    return val.includes(kw);
+                });
+            });
             return matchSkill && matchKeywords;
         });
 
@@ -385,19 +393,23 @@
         const container = document.getElementById('displayArea');
         const empty = document.getElementById('emptyMessage');
         
+        container.innerHTML = "";
+
         if (records.length === 0) {
             info.textContent = "";
-            container.innerHTML = "";
             empty.style.display = "block";
+            empty.innerHTML = "表示できるデータがありません。<br>「GitHubから同期」または「CSV読み込み」を行ってください。";
             return;
         }
 
         info.textContent = `${filtered.length} 件表示中 / 全 ${records.length} 件`;
-        container.innerHTML = "";
         empty.style.display = filtered.length === 0 ? "block" : "none";
+        if (filtered.length === 0) {
+            empty.textContent = "検索条件に一致するデータはありません。";
+            return;
+        }
 
-        if (filtered.length === 0) return;
-
+        // テーブル生成（PC用）
         const table = document.createElement('table');
         table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
         const tbody = document.createElement('tbody');
@@ -418,6 +430,7 @@
             });
             tbody.appendChild(tr);
 
+            // モバイル用カード生成
             const card = document.createElement('div');
             card.className = "mobile-card";
             const wBadge = (row[W_IDX] === "W" || row[W_IDX] === "w" || row[W_IDX] === "1") ? '<span class="w-badge">W</span>' : '';
@@ -449,31 +462,21 @@
         let h = text.toString();
         if (kws.length === 0) return h;
         kws.forEach(kw => {
-            const regex = new RegExp(`(${kw})`, 'gi');
-            h = h.replace(regex, '<mark>$1</mark>');
+            try {
+                // 特殊文字をエスケープしてハイライト
+                const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${escapedKw})`, 'gi');
+                h = h.replace(regex, '<mark>$1</mark>');
+            } catch(e) {}
         });
         return h;
     }
 
-    document.getElementById('resetBtn').onclick = () => {
+    function resetFilters() {
         document.getElementById('skillSelect').value = "";
         document.getElementById('effectInput').value = "";
         render();
-    };
-
-    document.getElementById('csvFile').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const content = ev.target.result;
-            localStorage.setItem(STORAGE_KEY, content);
-            document.getElementById('dataStatus').textContent = "📂 手動読込完了 (保存されました)";
-            parse(content);
-        };
-        reader.readAsText(file);
-        e.target.value = "";
-    };
+    }
 
     function downloadCSV() {
         if (records.length === 0) return;
@@ -485,9 +488,8 @@
     }
 
     function clearSavedData() {
-        if (confirm("全てのキャッシュを削除し、完全に初期状態（0件）に戻しますか？\n（GitHubからの同期も再度必要になります）")) {
+        if (confirm("全てのキャッシュを削除し、完全に初期状態（0件）に戻しますか？")) {
             localStorage.removeItem(STORAGE_KEY);
-            // リロードして初期化を実行
             location.reload();
         }
     }
