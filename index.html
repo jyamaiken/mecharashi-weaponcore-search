@@ -34,7 +34,7 @@
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 16px;
         }
@@ -81,10 +81,10 @@
             gap: 12px;
         }
 
-        @media (min-width: 641px) {
+        @media (min-width: 768px) {
             .search-grid {
                 display: grid;
-                grid-template-columns: 1fr 1fr auto;
+                grid-template-columns: 140px 180px 1fr auto;
                 align-items: flex-end;
             }
         }
@@ -103,7 +103,7 @@
 
         select, input[type="text"] {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 16px; 
@@ -117,8 +117,8 @@
         }
 
         .btn {
-            height: 48px;
-            padding: 0 20px;
+            height: 44px;
+            padding: 0 16px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
@@ -133,7 +133,6 @@
 
         .btn:active { background: #f1f5f9; }
         .btn-sync { border-color: var(--primary-color); color: var(--primary-color); }
-        .btn-sync:hover { background: #eff6ff; }
 
         .result-info {
             font-size: 0.8rem;
@@ -217,17 +216,21 @@
         }
 
         mark { background: var(--highlight-bg); color: #000; padding: 0 1px; border-radius: 2px; }
-        
         .no-data { padding: 50px; text-align: center; color: var(--text-muted); background: #fff; border-radius: 12px; border: 1px dashed var(--border-color); }
-
         .admin-section { margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px; }
         .admin-tools { display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap; }
         .btn-sm { height: 32px; font-size: 0.75rem; padding: 0 10px; }
-        
+
         .ad-container {
             margin: 20px 0;
             text-align: center;
-            min-height: 90px;
+            min-height: 100px;
+            background: #fafafa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -242,7 +245,15 @@
     <div class="controls-card">
         <div class="search-grid">
             <div class="field-group">
-                <label for="skillSelect">Skill絞り込み</label>
+                <label for="typeSelect">種別</label>
+                <select id="typeSelect">
+                    <option value="">全部</option>
+                    <option value="条件">条件</option>
+                    <option value="触発">触発</option>
+                </select>
+            </div>
+            <div class="field-group">
+                <label for="skillSelect">Skill</label>
                 <select id="skillSelect"><option value="">-- 全て --</option></select>
             </div>
             <div class="field-group">
@@ -263,33 +274,41 @@
         </div>
     </div>
 
-    <!-- Ad placeholder -->
+    <!-- Google AdSense ユニット -->
     <div class="ad-container">
-        <!-- 広告ユニットが必要な場合はここに ins タグを配置してください -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-3928751136810816"
+             data-ad-slot="取得したID"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
     </div>
 
     <div id="resultInfo" class="result-info"></div>
-    
     <div id="displayArea" class="table-view"></div>
-    
-    <div id="emptyMessage" class="no-data">
-        表示できるデータがありません。<br>
-        「GitHubから同期」または「CSV読み込み」を行ってください。
-    </div>
+    <div id="emptyMessage" class="no-data">表示できるデータがありません。</div>
 </div>
 
 <script>
     const GITHUB_CSV_URL = 'https://raw.githubusercontent.com/jyamaiken/mecharashi-weaponcore-search/main/mecharashi-weaponcore-202512.csv';
-    const STORAGE_KEY = 'mecharashi_final_clean_start_v1_fixed';
+    const STORAGE_KEY = 'mecharashi_v2025_rule_linked_dropdown';
     const STAGE_IDX = 0;
-    const SKILL_IDX = 3;
-    const W_IDX = 4;
+    const TYPE_IDX = 2;   
+    const SKILL_IDX = 3;  
+    const W_IDX = 4;      
 
     let headers = ["Stage", "Boss", "Core", "Skill", "W", "効果", "条件"];
     let records = [];
 
     window.onload = () => {
-        // UIイベントの紐付け
+        // 種別が変わったらスキルプルダウンを更新して再描画
+        document.getElementById('typeSelect').addEventListener('change', () => {
+            updateSkillDropdown();
+            render();
+        });
         document.getElementById('skillSelect').addEventListener('change', render);
         document.getElementById('effectInput').addEventListener('input', render);
         document.getElementById('resetBtn').addEventListener('click', resetFilters);
@@ -309,20 +328,16 @@
         const btn = document.getElementById('syncBtn');
         const status = document.getElementById('dataStatus');
         btn.disabled = true;
-        status.textContent = "🌐 GitHubから取得中...";
-        
+        status.textContent = "🌐 同期中...";
         try {
             const response = await fetch(`${GITHUB_CSV_URL}?t=${new Date().getTime()}`);
-            if (!response.ok) throw new Error(response.status === 404 ? '404: ファイル名相違' : `エラー(${response.status})`);
+            if (!response.ok) throw new Error(response.status);
             const content = await response.text();
-            if (content.length < 20) throw new Error('データ不正');
             localStorage.setItem(STORAGE_KEY, content);
             status.textContent = "✅ 同期完了";
             parse(content);
         } catch (error) {
-            console.error('Fetch error:', error);
-            status.textContent = `❌ ${error.message}`;
-            alert(`取得失敗: ${error.message}\nURL: ${GITHUB_CSV_URL}`);
+            status.textContent = `❌ 失敗(${error.message})`;
         } finally {
             btn.disabled = false;
         }
@@ -349,9 +364,7 @@
             render();
             return;
         }
-        
         headers = lines[0].split(',').map(h => h.trim());
-        
         if (lines.length > 1) {
             records = lines.slice(1).map(line => {
                 const cells = line.split(',').map(c => c.trim());
@@ -364,43 +377,72 @@
         } else {
             records = [];
         }
-        
-        updateFilterUI();
+        updateSkillDropdown();
         render();
     }
 
-    function updateFilterUI() {
-        const select = document.getElementById('skillSelect');
-        const prev = select.value;
-        const skills = [...new Set(records.map(r => r[SKILL_IDX]))].filter(s => s && s !== "0" && s !== "").sort();
+    function normalizeSkillName(name) {
+        if (!name) return "";
+        return name.replace(/\([^)]*\)/g, '').trim();
+    }
+
+    /**
+     * 種別フィルタに合わせてスキルのドロップダウンを動的に更新
+     */
+    function updateSkillDropdown() {
+        const typeFilter = document.getElementById('typeSelect').value;
+        const skillSelect = document.getElementById('skillSelect');
+        const currentSelected = skillSelect.value;
+
+        // 指定された種別に合致するレコードからスキル名を抽出
+        const filteredRecords = typeFilter 
+            ? records.filter(r => r[TYPE_IDX] === typeFilter)
+            : records;
+
+        const uniqueNames = [...new Set(filteredRecords.map(r => r[SKILL_IDX]))]
+            .filter(s => s && s !== "0" && s !== "").sort();
         
-        select.innerHTML = '<option value="">-- 全て --</option>';
-        skills.forEach(s => {
+        skillSelect.innerHTML = '<option value="">-- 全て --</option>';
+        uniqueNames.forEach(name => {
             const opt = document.createElement('option');
-            opt.value = opt.textContent = s;
-            select.appendChild(opt);
+            opt.value = name;
+            opt.textContent = name;
+            skillSelect.appendChild(opt);
         });
-        select.value = skills.includes(prev) ? prev : "";
+
+        // 以前選んでいたものが新しいリストにもあれば選択状態を復元
+        if (uniqueNames.includes(currentSelected)) {
+            skillSelect.value = currentSelected;
+        } else {
+            skillSelect.value = "";
+        }
     }
 
     function render() {
+        const typeFilter = document.getElementById('typeSelect').value;
         const skillFilter = document.getElementById('skillSelect').value;
         const searchInput = document.getElementById('effectInput').value.trim().toLowerCase();
-        
-        // 検索キーワードを分割
         const keywords = searchInput ? searchInput.split(/\s+/) : [];
 
+        const normalizedTarget = skillFilter ? normalizeSkillName(skillFilter) : null;
+
         const filtered = records.filter(row => {
-            const matchSkill = !skillFilter || row[SKILL_IDX] === skillFilter;
+            // 1. 種別絞り込み
+            const matchType = !typeFilter || row[TYPE_IDX] === typeFilter;
+            
+            // 2. スキル絞り込み（名寄せ：括弧なしの基本名が一致すれば表示）
+            let matchSkill = true;
+            if (normalizedTarget) {
+                matchSkill = normalizeSkillName(row[SKILL_IDX]) === normalizedTarget;
+            }
+
+            // 3. キーワード検索
             const matchKeywords = keywords.every(kw => {
-                // 正規表現の特殊文字をエスケープして安全に検索
-                const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                return row.some(cell => {
-                    const val = cell ? cell.toString().toLowerCase() : "";
-                    return val.includes(kw);
-                });
+                const rowText = row.join(" ").toLowerCase();
+                return rowText.includes(kw);
             });
-            return matchSkill && matchKeywords;
+
+            return matchType && matchSkill && matchKeywords;
         });
 
         const info = document.getElementById('resultInfo');
@@ -412,18 +454,15 @@
         if (records.length === 0) {
             info.textContent = "";
             empty.style.display = "block";
-            empty.innerHTML = "表示できるデータがありません。<br>「GitHubから同期」または「CSV読み込み」を行ってください。";
+            empty.innerHTML = "データがありません。<br>同期または読込を行ってください。";
             return;
         }
 
         info.textContent = `${filtered.length} 件表示中 / 全 ${records.length} 件`;
         empty.style.display = filtered.length === 0 ? "block" : "none";
-        if (filtered.length === 0) {
-            empty.textContent = "検索条件に一致するデータはありません。";
-            return;
-        }
+        
+        if (filtered.length === 0) return;
 
-        // テーブル生成（PC用）
         const table = document.createElement('table');
         table.innerHTML = `<thead><tr>${headers.map((h, i) => `<th class="${i===W_IDX?'col-w':''}">${h}</th>`).join('')}</tr></thead>`;
         const tbody = document.createElement('tbody');
@@ -444,7 +483,6 @@
             });
             tbody.appendChild(tr);
 
-            // モバイル用カード生成
             const card = document.createElement('div');
             card.className = "mobile-card";
             const wBadge = (row[W_IDX] === "W" || row[W_IDX] === "w" || row[W_IDX] === "1") ? '<span class="w-badge">W</span>' : '';
@@ -457,7 +495,7 @@
                     </div>
                     <span class="card-stage">Stage ${row[STAGE_IDX]}</span>
                 </div>
-                <div class="card-sub">${row[1] || ''} / ${row[2] || ''}</div>
+                <div class="card-sub">${row[TYPE_IDX] || ''} / ${row[1] || ''}</div>
                 <div class="card-body">
                     ${headers.map((h, i) => {
                         if (i <= 4 || !row[i] || row[i] === "0" || row[i] === "") return "";
@@ -477,7 +515,6 @@
         if (kws.length === 0) return h;
         kws.forEach(kw => {
             try {
-                // 特殊文字をエスケープしてハイライト
                 const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(${escapedKw})`, 'gi');
                 h = h.replace(regex, '<mark>$1</mark>');
@@ -487,6 +524,8 @@
     }
 
     function resetFilters() {
+        document.getElementById('typeSelect').value = "";
+        updateSkillDropdown();
         document.getElementById('skillSelect').value = "";
         document.getElementById('effectInput').value = "";
         render();
@@ -502,7 +541,7 @@
     }
 
     function clearSavedData() {
-        if (confirm("全てのキャッシュを削除し、完全に初期状態（0件）に戻しますか？")) {
+        if (confirm("全てのキャッシュを削除し、初期状態（0件）に戻しますか？")) {
             localStorage.removeItem(STORAGE_KEY);
             location.reload();
         }
@@ -511,3 +550,4 @@
 
 </body>
 </html>
+
